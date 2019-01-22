@@ -1,0 +1,19 @@
+if init fails
+git init
+git config user.name "Stefan"
+git config user.email "stefan.vukosav@hotmail.com"
+git add *
+git commit -a -m "text"
+
+git push origin master
+
+touch text.txt
+
+git fetch origin
+git pull origin
+
+git remote
+cd <folder>
+git remote
+
+git status
