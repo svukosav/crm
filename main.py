@@ -1,126 +1,255 @@
 import os
+import time
 from os import listdir
+from os import path
 from os.path import isfile, join
 import pandas as pd
 import numpy as np
 import pickle
 import datetime
-import tkinter
-
-class task():
-
-
-	def __init__(self, task_name, date_created, description):
-		self.task_name = task_name
-		self.date_created = date_created
-		self.description = description
-		self.date = dd_mm_yyyy()
-
-	def vars(self):
-		return [self.task_name, self.date_created, self.description]
-
-	def summary(self):
-		pass
-
+import sqlite3
+from tkinter import *
+from tkinter import scrolledtext
+from tkinter import messagebox
+from tkinter import filedialog
+from tkinter import ttk
+from tkinter.ttk import *
 
 def dd_mm_yyyy():
 	# Return current date in dd/mm/yyyy format
 	now = datetime.datetime.now()
 	return '-'.join(map(str, [now.day, now.month, now.year]))
 
-def load_data():
-	# Create str path of data folder based on current directory where python file is located
-	data = os.getcwd() + '\data'
+def db():
+	# Connect to database or create if non existant
+	conn = sqlite3.connect('crmdatabase.sqlite3')
+	cur = conn.cursor()
 
-	# Create str list of all files inside data folder
-	data_files_dir = [f for f in listdir(data) if isfile(join(data, f))]
+	# Load existing tables
+	cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+	current_tables = cur.fetchall()
+
+	# Create task table if non existant and add data to task table
+	sql_command = """
+
+	DROP TABLE IF EXISTS tasks;
+
+	CREATE TABLE IF NOT EXISTS tasks (
+		id INTEGER PRIMARY KEY,
+		project VARCHAR DEFAULT "Project ID",
+		task_name VARCHAR DEFAULT "Task Name",
+		task_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		task_description VARCHAR DEFAULT "Description",
+		UNIQUE (id));
+
+	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Tim Chu', 'Ask about Bow River Bridge');
+
+	INSERT INTO tasks (project, task_name, task_description) VALUES ('West Calgary Ring Road', 'Call Stefan', 'Send emails');
 	
-	# Return data if data.pk is in str list
-	# Else return None
-	# Exceptions return None
-	try:
-		if 'data.pk' in data_files_dir:
-			return pd.read_pickle('.\data\data.pk')
-		else:
-			return None
-	except:
-		print("Cannot find directory or data file...\n")
-		return None
+	"""
+	cur.executescript(sql_command)
+	conn.commit()
 
-# No good
-def data_output(data = None):
-	if data is None:
-		dates = pd.date_range('20130101', periods=6)
-		df = pd.DataFrame(np.random.randn(6,4), index=dates, columns=list('ABCD'))
-		df.to_pickle('.\data\data.pk')
-		print("5555")
-	else:
-		data.to_pickle('.\data\data.pk')
+	# Select data
+	cur.execute('SELECT * FROM tasks')
+	data = cur.fetchall()
+	print(data)
+	conn.close()
 
-def main(data = None):
-	# Check if pickled data file exists in data folder
-	if data is None:
-		print("No data found...")
-	else:
-		print("Data found...\n")
 
-	# User input, create new class instance
-	# task1 = task('Call subcontractors', dd_mm_yyyy(), 'Call Richard Janox and Hyseco')
-	entry = task('Call hyseco', dd_mm_yyyy(), 'Call Enmax')
 
-	# Classifying user input as new instance, modifying existing, or deleting existing
-	# Modification of existing class instance
-	if entry.task_name in list(data['task_name']):
-		pass
-	else:
-		# Creation of new class instance
-		data_in = pd.DataFrame(entry.__dict__, columns = entry.__dict__.keys(), index = [0])
-		data_in = pd.DataFrame(entry.__dict__, index = [0])
-		data = pd.concat([data, data_in])
+def window_setup():
 
+	def list_projects():
+		conn = sqlite3.connect('crmdatabase.sqlite3')
+		cur = conn.cursor()
+
+		sql_command = """
+			SELECT DISTINCT project FROM tasks;
+		"""
+
+		cur.execute(sql_command)
+		proj = cur.fetchall()
 		
-		file = open('data.pk','wb')
-		pickle.dump(data, file)
-		file.close()
-
-		file = open('data.pk', 'rb')
-		obj_1 = pickle.load(file)
-		with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-			print(obj_1)
-		file.close()
+		conn.close()
+		for entry in proj:
+			lbl2.configure(text=lbl2.cget("text")+"\n"+entry[0])
+		
 
 
+	window = Tk()
 
-	# User input, modify existing class instance
-	# 
-	# User input, delete existing class instance
-	# 
+	window.title("Flatiron CRMv1.0.0")
+	window.geometry('550x200')
 
-	# See current dataframe
-	with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-		print(data)
+
+
+	# Adding additional tabs
+	tab_control = ttk.Notebook(window)
+	tab1 = ttk.Frame(tab_control)
+	tab2 = ttk.Frame(tab_control)
+	# Tab 1
+	tab_control.add(tab1, text="Home")
+	lbl1 = Label(tab1, text= "Current Projects:", font="bold")
+	lbl1.grid(column=0, row=0)
+
+	lbl2 = Label(tab1, text= "", font="bold")
+	lbl1.grid(column=0, row=1)
+	# btn = Button(tab1, text="Submit", command=list_projects)
+	# btn.grid(column = 2, row = 3)
+
+	# Tab 2
+	tab_control.add(tab2, text="Tasks")
+	lbl2 = Label(tab2, text= "Label2")
+	lbl2.grid(column=0, row=0)
+
+	tab_control.pack(expand=1, fill="both")
 	
 
-	# data_output(data_in)
+	list_projects()
 
 
-def test_dir():
-	# Target path for data directory
-	data = os.getcwd() + '\data'
+	window.mainloop()
 
-	# Create new data folder if doesn't exist
-	if not os.path.exists(data):
-		os.makedirs('data')
-		print("Data directory created...")
-	else:
-		print("Data directory found...")
+	
+
+def main():
+	print("Setting up window")
+	window_setup()
+	
 
 def setup():
-	print("Welcome to CRMv1.0.0\n" + "Today's Date: " + dd_mm_yyyy() + "\n")
-	test_dir()
+	print("Welcome to CRMv1.0.0\n" + 
+			"Created with sqlite3 on January 31st 2019\n"+ 
+			"Today's Date: " + dd_mm_yyyy() + "\n")
+	db()
 	
 if __name__ == "__main__":
 	# Run program setup
 	setup()
 	# Main loop
-	main(load_data())
+	main()
+
+
+
+
+
+
+
+
+
+
+
+"""
+window = Tk()
+
+	window.title("Welcome to Flatiron")
+	window.geometry('550x200')
+
+
+	lbl = Label(window, text="Text Box 1: " + "\n" + "Combobox: ", font=("Arial Bold", 12))
+	lbl.grid(column = 0, row = 0)
+
+	txt1 = Entry(window, width=10)
+	txt1.grid(column=0, row=1)
+	txt1.focus()
+
+	txt2 = Entry(window, width=10, state="disabled")
+	txt2.grid(column=1, row=1)
+
+	combo = Combobox(window)
+	combo['values'] = (1,2,3,4,5,"Text")
+	combo.current(0)
+	combo.grid(column=2,row=1)
+
+	chk_state = BooleanVar()
+	chk_state.set(False)
+	chk = Checkbutton(window, text="I agree to terms", var=chk_state)
+	chk.grid(column=3, row=3)
+
+	selected = IntVar()
+	rad1 = Radiobutton(window, text="Option 1", value=1, variable=selected, command="")
+	rad2 = Radiobutton(window, text="Option 2", value=2, variable=selected, command="")
+	rad3 = Radiobutton(window, text="Option 3", value=3, variable=selected, command="")
+	rad1.grid(column=0, row=3)
+	rad2.grid(column=1, row=3)
+	rad3.grid(column=2, row=3)
+
+	txt = scrolledtext.ScrolledText(window,width=40,height=10)
+	txt.grid(column=0, row=5)
+	txt.insert(INSERT, "temporary text and description")
+	
+	var = IntVar()
+	var.set(50)
+	spin1 = Spinbox(window, from_=0, to=100, width=5, textvariable=var)
+	spin1.grid(column=2,row=4)
+
+	spin2 = Spinbox(window, value=(3, 8, 11), width=5)
+	spin2.grid(column=2, row=5)
+
+	# bar = Progressbar(window, length=100)
+	# for x in range(0, 110,10):
+	# 	bar['value'] = x
+	# 	window.update_idletasks()
+	# 	time.sleep(0.5)
+	# 	bar.grid(column=1, row=0)
+
+	# Multiple files, returns path
+	# file = filedialog.askopenfilenames()
+	# Single file, returns path
+	# file = filedialog.askopenfilename(filetypes = (("Text files","*.txt"),("All files","*.*")), initialdir = path.dirname(__file__))
+
+	menu = Menu(window)
+	new_item = Menu(menu, tearoff=0)
+	new_item.add_command(label="New", command="")
+	new_item.add_separator()
+	new_item.add_command(label="Edit", command="")
+	# menu.add_command(label="File")
+	menu.add_cascade(label="File", menu=new_item)
+	window.config(menu=menu)
+
+	# # Adding additional tabs
+	# tab_control = ttk.Notebook(window)
+	# tab1 = ttk.Frame(tab_control)
+	# tab2 = ttk.Frame(tab_control)
+	
+	# tab_control.add(tab1, text="First")
+	# tab_control.add(tab2, text="Second")
+
+	# lbl1 = Label(tab1, text= "Label1")
+	# lbl1.grid(column=0, row=0)
+	
+	# lbl2 = Label(tab2, text= "Label2")
+	# lbl2.grid(column=0, row=0)
+
+	# tab_control.pack(expand=1, fill="both")
+
+	def submit():
+		# lbl.configure(text="Button was clicked")
+		res = "Text Box 1: " + txt1.get() + "\n" + "Combobox: " + combo.get()
+		lbl.configure(text=res)
+		print(selected.get())
+
+		# messagebox.showinfo("Temporary Title", "temporary text and description")
+		# messagebox.showwarning("Temporary Warning", "temporary warning text and description")
+		# messagebox.showerror("Temporary Error", "temporary error text and description")
+
+		# Returns yes or no
+		# inp = messagebox.askquestion("Question 1", "Question content")
+		# Returns true or false
+		# inp = messagebox.askyesno("Question 2", "Question content")
+		# Returns true or false or none
+		# inp = messagebox.askyesnocancel("Question 3", "Question content")
+		# Returns true or false
+		# inp = messagebox.askokcancel("Question 4", "Question content")
+		# Returns true or false
+		# inp = messagebox.askretrycancel("Question 5", "Question content")
+		txt.delete(1.0, END)
+
+	btn = Button(window, text="Submit", command=submit)
+	btn.grid(column = 2, row = 3)
+
+	window.mainloop()
+
+
+"""
