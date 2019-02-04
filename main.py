@@ -80,11 +80,10 @@ def window_setup():
 			resp = cur.fetchall()
 
 			for counter, entry in enumerate(resp):
-				print(counter)
 				text = "Task Name: " + entry[2] + "\nDescription: " + entry[4] + "\nDate Created: " + entry[3]
 				# Task Name
 				nTask = Label(lt[entry[1]], text=text, font="Helvetica 10")
-				nTask.grid(column=0, row=counter*2+1, sticky='w')
+				nTask.grid(column=0, row=counter+1, sticky='w')
 
 
 	def tab_projects():
