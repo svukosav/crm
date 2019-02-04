@@ -44,6 +44,10 @@ def db():
 
 	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Tim Chu', 'Ask about Bow River Bridge');
 
+	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Singbeil', 'Confirm rams');
+
+	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Janox', 'Check power supplies');
+
 	INSERT INTO tasks (project, task_name, task_description) VALUES ('West Calgary Ring Road', 'Call Stefan', 'Send emails');
 
 	INSERT INTO tasks (project, task_name, task_description) VALUES ('Hwy 91 Widening', 'Create drawings for joop', 'use autocad');
@@ -63,6 +67,25 @@ def db():
 
 
 def window_setup():
+
+	def pop_tabs(lt):
+		conn = sqlite3.connect('crmdatabase.sqlite3')
+		cur = conn.cursor()
+		for x in lt:
+			sql_command = """
+				SELECT * FROM tasks WHERE project = ?;
+			"""
+
+			cur.execute(sql_command, (x,))
+			resp = cur.fetchall()
+
+			for counter, entry in enumerate(resp):
+				print(counter)
+				text = "Task Name: " + entry[2] + "\nDescription: " + entry[4] + "\nDate Created: " + entry[3]
+				# Task Name
+				nTask = Label(lt[entry[1]], text=text, font="Helvetica 10")
+				nTask.grid(column=0, row=counter*2+1, sticky='w')
+
 
 	def tab_projects():
 		conn = sqlite3.connect('crmdatabase.sqlite3')
@@ -93,24 +116,22 @@ def window_setup():
 		lblTaskSum = Label(summary, text="Upcoming Tasks", font="Helvetica 10 bold")
 		lblTaskSum.grid(column=0, row=2, sticky="w")
 
-
 		# Create project tabs
-		tabs = []
+		tabs_id = []
 		for entry in proj:
 			text1 = entry[0]
 			frame = ttk.Frame(tab_control)
 			tab_control.add(frame, text=text1)
 			lbl1 = Label(frame, text= "Current Tasks:", font="Helvetica 10 bold")
 			lbl1.grid(column=0, row=0, sticky='w')
-			tabs.append(frame)
+			tabs_id.append(frame)
 
-		lbl1 = Label(tabs[0], text= "test:", font="Helvetica 10 bold")
-		lbl1.grid(column=0, row=1, sticky='w')
-
-		
+		# Tabs dict with project keys and tkinter object values
+		lt = dict(zip(l, tabs_id))
 
 		tab_control.pack(expand=1, fill="both")
 
+		return lt
 
 	def list_projects():
 		conn = sqlite3.connect('crmdatabase.sqlite3')
@@ -129,42 +150,25 @@ def window_setup():
 		proj_sum.grid(column=0, row=0)
 		
 
-	# initialization
+
+	# window initialization
 	window = Tk()
 	window.title("Flatiron CRMv1.0.0")
 	window.geometry('550x500')
 
 	# Create menu
-	menu = Menu(window)
-	new_item = Menu(menu, tearoff=0)
-	new_item.add_command(label="New Project", command="")
-	new_item.add_separator()
-	new_item.add_command(label="Edit", command="")
-	menu.add_cascade(label="File", menu=new_item)
-	window.config(menu=menu)
+	def menu():
+		menu = Menu(window)
+		new_item = Menu(menu, tearoff=0)
+		new_item.add_command(label="New Project", command="")
+		new_item.add_separator()
+		new_item.add_command(label="Edit", command="")
+		menu.add_cascade(label="File", menu=new_item)
+		window.config(menu=menu)
 
-	# # Adding additional tabs
-	# tab_control = ttk.Notebook(window)
-	# tab1 = ttk.Frame(tab_control)
-	# tab2 = ttk.Frame(tab_control)
-	# # Tab 1
-	# tab_control.add(tab1, text="Home")
-	# lbl1 = Label(tab1, text= "Current Projects:", font="bold")
-	# lbl1.grid(column=0, row=0)
-
-	# lbl2 = Label(tab1, text= "", font="bold")
-	# lbl2.grid(column=0, row=1)
-	# # btn = Button(tab1, text="Submit", command=list_projects)
-	# # btn.grid(column = 2, row = 3)
-
-	# # Tab 2
-	# tab_control.add(tab2, text="Tasks")
-	# lbl3 = Label(tab2, text= "Label2")
-	# lbl3.grid(column=0, row=0)
-
-	# tab_control.pack(expand=1, fill="both")
-	
-	tab_projects()
+	lt = tab_projects()
+	menu()
+	pop_tabs(lt)
 	list_projects()
 
 
@@ -173,7 +177,6 @@ def window_setup():
 	
 
 def main():
-	print("Setting up window")
 	window_setup()
 	
 
