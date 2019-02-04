@@ -1,5 +1,5 @@
 # Customer Relationship Manager for Estimating - Prototype
-
+## Summary
 Program will categorize your tasks and pending required actions to ensure project work is well documented and progressed. This CRM will feature a summary tab with the most urgent tasks across all projects. Each project will have it's own tab for another summary of the tasks required for that specific project.
 
 User interactions include:
@@ -17,12 +17,11 @@ Analytics will be used for presenting all work to supervisors/colleagues for rev
 - No. of current tasks still open/pending
 - No. of tasks closed/completed
 - No. of tasks deleted/modified/added
-- 
-
-
+- Calendar summary of tasks
+- Weekly summary of tasks
+- Daily summary of tasks
 
 ## File Compatibilities
-
 - Attaching emails to tasks
 - Attaching pdfs to tasks
 - Attaching excel files to tasks
