@@ -89,9 +89,11 @@ def window_setup():
 				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
 
 				if entry[5] == "Open":
-					nTask.configure(background="Green", foreground="White", wraplength=250, activebackground="blue")
+					nTask.configure(background="Green", foreground="White", wraplength=250)
 				elif entry[5] == "Closed":
 					nTask.configure(background="Red", foreground="White", wraplength=250)
+				else:
+					print("no type")
 
 
 	def tab_projects():
