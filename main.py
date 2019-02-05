@@ -40,19 +40,22 @@ def db():
 		task_name VARCHAR DEFAULT "Task Name",
 		task_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		task_description VARCHAR DEFAULT "Description",
+		status VARCHAR DEFAULT "Open",
 		UNIQUE (id));
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Tim Chu', 'Ask about Bow River Bridge');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', 'Ask about Bow River Bridge', 'Open');
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Singbeil', 'Confirm rams');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Singbeil this is an extra long text description', 'Confirm rams', 'Open');
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('Bow River Bridge', 'Call Janox', 'Check power supplies');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', 'Check power supplies', 'Closed');
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('West Calgary Ring Road', 'Call Stefan', 'Send emails');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('West Calgary Ring Road', 'Call Stefan', 'Send emails', 'Open');
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('Hwy 91 Widening', 'Create drawings for joop', 'use autocad');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'Create drawings for joop', 'use autocad', 'Open');
 
-	INSERT INTO tasks (project, task_name, task_description) VALUES ('Lynn Valley Twinning', 'Call Fortis', 'Check gas lines');
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'another task', 'Another really long used description of text for use autocad', 'Open');
+
+	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Lynn Valley Twinning', 'Call Fortis', 'Check gas lines', 'Open');
 	
 	"""
 	cur.executescript(sql_command)
@@ -83,7 +86,12 @@ def window_setup():
 				text = "Task Name: " + entry[2] + "\nDescription: " + entry[4] + "\nDate Created: " + entry[3]
 				# Task Name
 				nTask = Label(lt[entry[1]], text=text, font="Helvetica 10")
-				nTask.grid(column=0, row=counter+1, sticky='w')
+				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
+
+				if entry[5] == "Open":
+					nTask.configure(background="Green", foreground="White", wraplength=250, activebackground="blue")
+				elif entry[5] == "Closed":
+					nTask.configure(background="Red", foreground="White", wraplength=250)
 
 
 	def tab_projects():
