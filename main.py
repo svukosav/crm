@@ -9,197 +9,204 @@ import pickle
 import datetime
 import sqlite3
 from tkinter import *
+import tkinter as tk
 from tkinter import scrolledtext
 from tkinter import messagebox
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter.ttk import *
 
-def dd_mm_yyyy():
-	# Return current date in dd/mm/yyyy format
-	now = datetime.datetime.now()
-	return '-'.join(map(str, [now.day, now.month, now.year]))
 
-def db():
-	# Connect to database or create if non existant
-	conn = sqlite3.connect('crmdatabase.sqlite3')
-	cur = conn.cursor()
+tab_w_id = {}
 
-	# Load existing tables
-	cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-	current_tables = cur.fetchall()
+class CRM(Frame):
+	def __init__(self, title, master=None):
+		Frame.__init__(self, master)
 
-	# Create task table if non existant and add data to task table
-	sql_command = """
+		self.create_db()
+		self.load_proj_list()
+		self.create_tabs()
+		self.pop_tabs()
+		self.menu()
+		self.pop_sum_tab()
+		self.pack(fill="both", expand=1)
 
-	DROP TABLE IF EXISTS tasks;
-
-	CREATE TABLE IF NOT EXISTS tasks (
-		id INTEGER PRIMARY KEY,
-		project VARCHAR DEFAULT "Project ID",
-		task_name VARCHAR DEFAULT "Task Name",
-		task_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		task_description VARCHAR DEFAULT "Description",
-		status VARCHAR DEFAULT "Open",
-		UNIQUE (id));
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', 'Ask about Bow River Bridge', 'Open');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Singbeil this is an extra long text description', 'Confirm rams', 'Open');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', 'Check power supplies', 'Closed');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('West Calgary Ring Road', 'Call Stefan', 'Send emails', 'Open');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'Create drawings for joop', 'use autocad', 'Open');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'another task', 'Another really long used description of text for use autocad', 'Open');
-
-	INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Lynn Valley Twinning', 'Call Fortis', 'Check gas lines', 'Open');
-	
-	"""
-	cur.executescript(sql_command)
-	conn.commit()
-
-	# Select data
-	cur.execute('SELECT * FROM tasks')
-	data = cur.fetchall()
-	print(data)
-	conn.close()
-
-
-
-def window_setup():
-
-	def pop_tabs(lt):
+	def load_proj_list(self):
+		# Generate list of current distinct projects in database
 		conn = sqlite3.connect('crmdatabase.sqlite3')
 		cur = conn.cursor()
-		for x in lt:
+
+		sql_command = """
+			SELECT DISTINCT project FROM tasks;
+		"""
+
+		cur.execute(sql_command)
+		proj = cur.fetchall()
+
+		self.proj_list = [x[0] for x in proj]
+
+	def dd_mm_yyyy(self):
+		# Return current date in dd/mm/yyyy format
+		now = datetime.datetime.now()
+		return '-'.join(map(str, [now.day, now.month, now.year]))
+
+	def create_db(self):
+		# Connect to database or create if non existant
+		conn = sqlite3.connect('crmdatabase.sqlite3')
+		cur = conn.cursor()
+
+		# Load existing tables
+		cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+		current_tables = cur.fetchall()
+
+		# Create task table if non existant and add data to task table
+		sql_command = """
+
+		DROP TABLE IF EXISTS tasks;
+
+		CREATE TABLE IF NOT EXISTS tasks (
+			task_id INTEGER PRIMARY KEY,
+			project VARCHAR DEFAULT "Project ID",
+			task_name VARCHAR DEFAULT "Task Name",
+			date_created TIMESTAMP DEFAULT CURRENT_DATE,
+			task_description VARCHAR DEFAULT "Description",
+			status VARCHAR DEFAULT "Open",
+			UNIQUE (task_id));
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2019-01-01', 'Ask about Bow River Bridge', 'Open');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Singbeil this is an extra long text description', '2019-01-05', 'Confirm rams', 'Open');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', '2019-04-01', 'Check power supplies', 'Closed');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2014-01-01', 'Ask about Bow River Bridge', 'Open');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Singbeil this is an extra long text description', '2011-01-01', 'Confirm rams', 'Open');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', '2019-01-09', 'Check power supplies', 'Closed');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2019-05-02', 'Ask about Bow River Bridge', 'Open');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', '2011-09-01', 'Check power supplies', 'Closed');
+
+		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('West Calgary Ring Road', 'Call Stefan', '2013-01-01', 'Send emails', 'Open');
+
+		INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'Create drawings for joop', 'use autocad', 'Open');
+
+		INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Hwy 91 Widening', 'another task', 'Another really long used description of text for use autocad', 'Open');
+
+		INSERT INTO tasks (project, task_name, task_description, status) VALUES ('Lynn Valley Twinning', 'Call Fortis', 'Check gas lines', 'Open');
+		
+		"""
+		cur.executescript(sql_command)
+		conn.commit()
+
+		conn.close()
+
+	def create_tabs(self):
+		self.tab_control = ttk.Notebook(self)
+
+		self.tab = ttk.Frame(self.tab_control)
+		self.tab_control.add(self.tab, text="Summary")
+		tab_w_id["Summary"] = self.tab
+
+		for x in self.proj_list:
+			self.tab = ttk.Frame(self.tab_control)
+			self.tab_control.add(self.tab, text=x)
+			tab_w_id[x] = self.tab
+
+		self.tab_control.pack(expand=1, fill="both")
+
+	def pop_sum_tab(self):
+		print(tab_w_id["Summary"])
+		btn = Button(tab_w_id["Summary"], text="New Task", command=self.create_task)
+		btn.grid(column = 0, row = 0)
+
+	def pop_tabs(self):
+		conn = sqlite3.connect('crmdatabase.sqlite3')
+		cur = conn.cursor()
+		for proj, tab_obj in tab_w_id.items():
 			sql_command = """
-				SELECT * FROM tasks WHERE project = ?;
+				SELECT * FROM tasks WHERE project = ? ORDER BY date_created DESC;
 			"""
 
-			cur.execute(sql_command, (x,))
+			# Select data with the id x (specific project)
+			cur.execute(sql_command, (proj,))
 			resp = cur.fetchall()
 
+			# Populate all data with the given id x (specific project)
 			for counter, entry in enumerate(resp):
-				text = "Task Name: " + entry[2] + "\nDescription: " + entry[4] + "\nDate Created: " + entry[3]
+				text = '\n'.join(["Task: "+str(entry[0]), entry[2], entry[4], entry[3]])
 				# Task Name
-				nTask = Label(lt[entry[1]], text=text, font="Helvetica 10")
+				nTask = Label(tab_obj, text=text, font=("Helvetica", 9))
 				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
 
 				if entry[5] == "Open":
 					nTask.configure(background="Green", foreground="White", wraplength=250)
 				elif entry[5] == "Closed":
 					nTask.configure(background="Red", foreground="White", wraplength=250)
-				else:
-					print("no type")
 
+				checkmark = Button(tab_obj, text="Complete Task", command="")
+				checkmark.grid(column = 1, row = counter+1, sticky="NE")
+				checkmark = Button(tab_obj, text="Modify Task", command="")
+				checkmark.grid(column = 2, row = counter+1, sticky="NE")
 
-	def tab_projects():
-		conn = sqlite3.connect('crmdatabase.sqlite3')
-		cur = conn.cursor()
+		conn.close()	
 
-		sql_command = """
-			SELECT DISTINCT project FROM tasks;
-		"""
-
-		cur.execute(sql_command)
-		proj = cur.fetchall()
-		
-		tab_control = ttk.Notebook(window)
-
-		# Create Summary tab
-		summary = ttk.Frame(tab_control)
-		tab_control.add(summary, text="Summary")
-		lblCurProj = Label(summary, text= "Current Projects:", font="Helvetica 10 bold")
-		lblCurProj.grid(column=0, row=0, sticky='w')
-		lblProjList = Label(summary, text= "")
-		lblProjList.grid(column=0, row=1, sticky="w")
-
-		# List current projects
-		l = [x[0] for x in proj]
-		lblProjList.configure(text='\n'.join(l), font="Helvetica 9 italic")
-		
-		# Summary of upcoming tasks
-		lblTaskSum = Label(summary, text="Upcoming Tasks", font="Helvetica 10 bold")
-		lblTaskSum.grid(column=0, row=2, sticky="w")
-
-		# Create project tabs
-		tabs_id = []
-		for entry in proj:
-			text1 = entry[0]
-			frame = ttk.Frame(tab_control)
-			tab_control.add(frame, text=text1)
-			lbl1 = Label(frame, text= "Current Tasks:", font="Helvetica 10 bold")
-			lbl1.grid(column=0, row=0, sticky='w')
-			tabs_id.append(frame)
-
-		# Tabs dict with project keys and tkinter object values
-		lt = dict(zip(l, tabs_id))
-
-		tab_control.pack(expand=1, fill="both")
-
-		return lt
-
-	def list_projects():
-		conn = sqlite3.connect('crmdatabase.sqlite3')
-		cur = conn.cursor()
-
-		sql_command = """
-			SELECT DISTINCT project FROM tasks;
-		"""
-
-		cur.execute(sql_command)
-		proj = cur.fetchall()
-		
-		conn.close()
-		tab_control = ttk.Notebook(window)
-		proj_sum = Label(ttk.Frame(tab_control), text="Active Projects")
-		proj_sum.grid(column=0, row=0)
-		
-
-
-	# window initialization
-	window = Tk()
-	window.title("Flatiron CRMv1.0.0")
-	window.geometry('550x500')
-
-	# Create menu
-	def menu():
-		menu = Menu(window)
-		new_item = Menu(menu, tearoff=0)
-		new_item.add_command(label="New Project", command="")
+	def menu(self):
+		self.menu = Menu(self)
+		new_item = Menu(self.menu, tearoff=0)
+		new_item.add_command(label="New Task", command="")
 		new_item.add_separator()
 		new_item.add_command(label="Edit", command="")
-		menu.add_cascade(label="File", menu=new_item)
-		window.config(menu=menu)
-
-	lt = tab_projects()
-	menu()
-	pop_tabs(lt)
-	list_projects()
+		new_item.add_command(label="Readme", command="")
+		new_item.add_command(label="Exit", command=quit)
+		self.menu.add_cascade(label="File", menu=new_item)
+		self.master.config(menu=self.menu)
 
 
-	window.mainloop()
 
-	
+	def close_task(self):
+		# Turn from green to red
+		pass
 
-def main():
-	window_setup()
-	
+	def modify_task(self):
+		# Change name, description, etc
+		pass
+
+	def analytics(self):
+		# Data points on existing tasks
+		pass
+
+	def create_task(self):
+		# Create new task
+		pass
+
+	def check_task(self):
+		# See if task has expired
+		# If true, turn orange
+		pass
+
+
+
+
+
+
 
 def setup():
 	print("Welcome to CRMv1.0.0\n" + 
-			"Created with sqlite3 on January 31st 2019\n"+ 
-			"Today's Date: " + dd_mm_yyyy() + "\n")
-	db()
+			"Created with sqlite3 on January 31st 2019\n")
+	# Initialization
+	root = Tk()
+	root.title("Flatiron CRMv1.0.0")
+	root.geometry('550x500')
+	root.config(background="grey")
+	root.resizable(width=False, height=False)
+	app = CRM(root)
+	root.mainloop()
 	
 if __name__ == "__main__":
-	# Run program setup
 	setup()
-	# Main loop
-	main()
 
 
 
