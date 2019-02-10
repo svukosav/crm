@@ -15,7 +15,7 @@ tab_w_id = {}
 class CRM(tk.Frame):
 	def __init__(self, title, master=None):
 		tk.Frame.__init__(self, master)
-
+		self.colours()
 		self.create_db()
 		self.load_proj_list()
 		self.create_tabs()
@@ -23,6 +23,18 @@ class CRM(tk.Frame):
 		self.menu()
 		self.pop_sum_tab()
 		self.pack(fill="both", expand=True)
+
+	def colours(self):
+		# Bootstrap Colors
+		f = "#6C757D" #dark grey
+		self.bg = "#F8F9FA" #off-white
+		self.blue = "#007BFF" # blue 0,123,255
+		self.green = "#28A745" # green 40,167,69
+		self.red = "#DC3545" # red 220, 53, 69
+		y = "#FFC107" # yellow 255, 193, 7
+		t = "#17A2B8" # turquoise 23, 162, 184
+		self.fg = "#343A40" # off-black 52, 58, 64
+
 
 	def load_proj_list(self):
 		# Generate list of current distinct projects in database
@@ -37,6 +49,8 @@ class CRM(tk.Frame):
 		proj = cur.fetchall()
 
 		self.proj_list = [x[0] for x in proj]
+
+		conn.close()
 
 	def yyyy_mm_dd(self):
 		# Return current date in dd/mm/yyyy format
@@ -111,8 +125,8 @@ class CRM(tk.Frame):
 		self.tab_control.pack(expand=1, fill="both")
 
 	def pop_sum_tab(self):
-		btn = Button(tab_w_id["Summary"], text="New Task", command=self.create_task)
-		btn.grid(column = 0, row = 0)
+		btn = tk.Button(tab_w_id["Summary"], text="New Task", command=self.create_task, background=self.green, foreground=self.fg, padx=50, pady=10)
+		btn.grid(column = 0, row = 0, columnspan=3, sticky="news")
 
 	def pop_tabs(self):
 		conn = sqlite3.connect('crmdatabase.sqlite3')
@@ -134,9 +148,9 @@ class CRM(tk.Frame):
 				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
 
 				if entry[5] == "Open":
-					nTask.configure(background="Green", foreground="White", wraplength=250)
+					nTask.configure(background=self.green, foreground=self.fg, wraplength=250)
 				elif entry[5] == "Closed":
-					nTask.configure(background="Red", foreground="White", wraplength=250)
+					nTask.configure(background=self.red, foreground=self.fg, wraplength=250)
 
 				checkmark = Button(tab_obj, text="Complete Task", command="")
 				checkmark.grid(column = 1, row = counter+1, sticky="NE")
@@ -170,98 +184,106 @@ class CRM(tk.Frame):
 
 	def create_task(self):
 		# Create new task
-		# Colors
-		bg = "grey"
-		fg = "white"
-
 		self.win2 = tk.Toplevel(self)
 		self.win2.title("New Task")
-		self.win2.config(background=bg)
+		self.win2.config(background=self.bg)
+		self.win2.resizable(width=False, height=False)
 
-		self.lblTask = tk.Label(self.win2, text="Task Name", background=bg, foreground=fg)
+		self.lblTask = tk.Label(self.win2, text="Task Name", background=self.bg, foreground=self.fg)
 		self.lblTask.grid(column=0, row=0, sticky="w")
 		self.entTask = tk.Entry(self.win2)
 		self.entTask.grid(column=0, row=1, padx=5, pady=5, sticky="w")
+		self.entTask.focus()
 
-		self.lblTask = tk.Label(self.win2, text="Date Created", background=bg, foreground=fg)
-		self.lblTask.grid(column=1, row=0, sticky="w")
-		self.lblTask = tk.Label(self.win2, text=self.yyyy_mm_dd, background=bg)
-		self.lblTask.grid(column=1, row=1, sticky="w")
+		self.lblDate = tk.Label(self.win2, text="Date Created", background=self.bg, foreground=self.fg)
+		self.lblDate.grid(column=1, row=0, sticky="w")
+		self.lblDateText = tk.Label(self.win2, text=self.yyyy_mm_dd, background=self.bg)
+		self.lblDateText.grid(column=1, row=1, sticky="w")
 
-		self.alert = tk.Label(self.win2, text="", background=bg, foreground="Red")
-		self.alert.grid(column=2, row=2, sticky="W")
-		self.alert_msg = tk.Label(self.win2, text="", background=bg, foreground="Red")
-		self.alert_msg.grid(column=2, row=3, sticky="W")
+		self.alert = tk.Label(self.win2, text="", background=self.bg, foreground=self.red)
+		self.alert.grid(column=2, row=1, sticky="news")
+		self.alert_msg = tk.Label(self.win2, text="", background=self.bg, foreground=self.red)
+		self.alert_msg.grid(column=2, row=2, sticky="news")
 		
-		self.lblProjName = tk.Label(self.win2, text="New Project Name", background=bg, foreground=fg)
+		self.lblProjName = tk.Label(self.win2, text="New Project Name", background=self.bg, foreground=self.fg, state=DISABLED)
 		self.lblProjName.grid(column=0, row=2, sticky="w")
-		self.entProjName = tk.Entry(self.win2)
+		self.entProjName = tk.Entry(self.win2, state=DISABLED)
 		self.entProjName.grid(column=0, row=3, padx=5, pady=5, sticky="w")
 
 		self.chk_state = BooleanVar()
-		self.chk_state.set(False)
-		self.chk = tk.Checkbutton(self.win2, text="Select existing", var=self.chk_state, command=self.change_state, background=bg, foreground=fg, selectcolor=bg)
+		self.chk_state.set(True)
+		self.chk = tk.Checkbutton(self.win2, text="Select existing", var=self.chk_state, command=self.change_state, background=self.bg, foreground=self.fg, selectcolor=self.bg)
 		self.chk.grid(column=2, row=3)
 
-		self.curProjList = tk.Label(self.win2, text="Current Projects", background=bg, foreground=fg, state=DISABLED)
+		self.curProjList = tk.Label(self.win2, text="Current Projects", background=self.bg, foreground=self.fg)
 		self.curProjList.grid(column=1, row=2, sticky="W")
-		self.comboCurProjList = ttk.Combobox(self.win2, state=DISABLED)
+		self.comboCurProjList = ttk.Combobox(self.win2, foreground=self.fg, background=self.bg)
 		self.comboCurProjList['values'] = [""] + self.proj_list
 		self.comboCurProjList.current(0)
 		self.comboCurProjList.grid(column=1, row=3, sticky="W")
 
-		self.lblTaskDesc = tk.Label(self.win2, text="Task Description", background=bg, foreground=fg)
+		self.lblTaskDesc = tk.Label(self.win2, text="Task Description", background=self.bg, foreground=self.fg)
 		self.lblTaskDesc.grid(column=0, row= 4, sticky="w")
 		self.entTaskDesc = tk.Text(self.win2, width=50, height=5)
 		self.entTaskDesc.grid(column=0, row=5, padx=5, pady=5, sticky="w", columnspan=3)
 
-		self.submitNewTask = tk.Button(self.win2, text="Submit", command=self.get_input)
-		self.submitNewTask.grid(column=0, row=6, sticky="e", ipadx=15)
+		self.submitNewTask = tk.Button(self.win2, text="Submit", command=self.get_input, background=self.green, foreground=self.fg)
+		self.submitNewTask.grid(column=0, row=6, sticky="nesw", padx=100, columnspan=3)
 
 	def change_state(self):
 		if self.chk_state.get() == True:
 			self.curProjList.config(state=NORMAL)
 			self.comboCurProjList.config(state=NORMAL)
-
+			self.entProjName.delete(0, END)
 			self.lblProjName.config(state=DISABLED)
-			self.entProjName.config(state=DISABLED, fill="green")
+			self.entProjName.config(state=DISABLED)
 		elif self.chk_state.get() == False:
 			self.curProjList.config(state=DISABLED)
 			self.comboCurProjList.config(state=DISABLED)
-
+			self.comboCurProjList.current(0)
 			self.lblProjName.config(state=NORMAL)
-			self.entProjName.config(state=NORMAL)
+			self.entProjName.config(state=NORMAL,)
 
 	def get_input(self):
 		if not self.entTask.get():
 			self.alert.config(text="Warning")
-			self.alert_msg.config(text="Task Field is Empty")
-			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
-			self.win2.update()
-		elif not self.entProjName.get():
+			self.alert_msg.config(text="Missing Task")
+			self.lblTask.config(foreground=self.red)
+			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text=""), self.lblTask.config(foreground=self.fg)))
+		elif not self.entProjName.get() and not self.comboCurProjList.get():
 			self.alert.config(text="Warning")
-			self.alert_msg.config(text="Project Name Field is Empty")
+			self.alert_msg.config(text="Missing Project")
 			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
-			self.win2.update()
 		elif len(self.entTaskDesc.get("1.0", "end-1c")) == 0:
 			self.alert.config(text="Warning")
-			self.alert_msg.config(text="Description Field is Empty")
-			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
-			self.win2.update()
+			self.alert_msg.config(text="Missing Text")
+			self.lblTaskDesc.config(foreground=self.red)
+			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text=""), self.lblTaskDesc.config(foreground=self.fg)))
 		else:
+			if self.entProjName.get() and not self.comboCurProjList.get():
+				project_name = self.entProjName.get()
+			elif not self.entProjName.get() and self.comboCurProjList.get():
+				project_name = self.comboCurProjList.get()			
 
 			task_name = self.entTask.get()
-			project_name = self.entProjName.get()
 			task_description = self.entTaskDesc.get(1.0, END)
-			date_inp = self.yyyy_mm_dd()
+			# date_inp = self.yyyy_mm_dd()
+
+			# Connect to database and add entries
+			conn = sqlite3.connect('crmdatabase.sqlite3')
+			cur = conn.cursor()
+
+			sql_command = """
+				INSERT INTO tasks (project, task_name, task_description, status) VALUES (?, ?, ?, 'Open');
+			"""
+			cur.execute(sql_command, (project_name, task_name, task_description,))
+			conn.commit()
+			conn.close()
+
+			# Close window
 			self.win2.destroy()
-
-
-
-
-		
-
-
+			# update tabs
+			self.pop_tabs()
 
 	def check_task(self):
 		# See if task has expired
