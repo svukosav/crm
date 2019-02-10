@@ -1,11 +1,4 @@
-import os
 import time
-from os import listdir
-from os import path
-from os.path import isfile, join
-import pandas as pd
-import numpy as np
-import pickle
 import datetime
 import sqlite3
 from tkinter import *
@@ -19,9 +12,9 @@ from tkinter.ttk import *
 
 tab_w_id = {}
 
-class CRM(Frame):
+class CRM(tk.Frame):
 	def __init__(self, title, master=None):
-		Frame.__init__(self, master)
+		tk.Frame.__init__(self, master)
 
 		self.create_db()
 		self.load_proj_list()
@@ -29,7 +22,7 @@ class CRM(Frame):
 		self.pop_tabs()
 		self.menu()
 		self.pop_sum_tab()
-		self.pack(fill="both", expand=1)
+		self.pack(fill="both", expand=True)
 
 	def load_proj_list(self):
 		# Generate list of current distinct projects in database
@@ -45,10 +38,10 @@ class CRM(Frame):
 
 		self.proj_list = [x[0] for x in proj]
 
-	def dd_mm_yyyy(self):
+	def yyyy_mm_dd(self):
 		# Return current date in dd/mm/yyyy format
 		now = datetime.datetime.now()
-		return '-'.join(map(str, [now.day, now.month, now.year]))
+		return str('-'.join(map(str, [now.year, now.month, now.day])))
 
 	def create_db(self):
 		# Connect to database or create if non existant
@@ -118,7 +111,6 @@ class CRM(Frame):
 		self.tab_control.pack(expand=1, fill="both")
 
 	def pop_sum_tab(self):
-		print(tab_w_id["Summary"])
 		btn = Button(tab_w_id["Summary"], text="New Task", command=self.create_task)
 		btn.grid(column = 0, row = 0)
 
@@ -164,8 +156,6 @@ class CRM(Frame):
 		self.menu.add_cascade(label="File", menu=new_item)
 		self.master.config(menu=self.menu)
 
-
-
 	def close_task(self):
 		# Turn from green to red
 		pass
@@ -180,29 +170,113 @@ class CRM(Frame):
 
 	def create_task(self):
 		# Create new task
-		pass
+		# Colors
+		bg = "grey"
+		fg = "white"
+
+		self.win2 = tk.Toplevel(self)
+		self.win2.title("New Task")
+		self.win2.config(background=bg)
+
+		self.lblTask = tk.Label(self.win2, text="Task Name", background=bg, foreground=fg)
+		self.lblTask.grid(column=0, row=0, sticky="w")
+		self.entTask = tk.Entry(self.win2)
+		self.entTask.grid(column=0, row=1, padx=5, pady=5, sticky="w")
+
+		self.lblTask = tk.Label(self.win2, text="Date Created", background=bg, foreground=fg)
+		self.lblTask.grid(column=1, row=0, sticky="w")
+		self.lblTask = tk.Label(self.win2, text=self.yyyy_mm_dd, background=bg)
+		self.lblTask.grid(column=1, row=1, sticky="w")
+
+		self.alert = tk.Label(self.win2, text="", background=bg, foreground="Red")
+		self.alert.grid(column=2, row=2, sticky="W")
+		self.alert_msg = tk.Label(self.win2, text="", background=bg, foreground="Red")
+		self.alert_msg.grid(column=2, row=3, sticky="W")
+		
+		self.lblProjName = tk.Label(self.win2, text="New Project Name", background=bg, foreground=fg)
+		self.lblProjName.grid(column=0, row=2, sticky="w")
+		self.entProjName = tk.Entry(self.win2)
+		self.entProjName.grid(column=0, row=3, padx=5, pady=5, sticky="w")
+
+		self.chk_state = BooleanVar()
+		self.chk_state.set(False)
+		self.chk = tk.Checkbutton(self.win2, text="Select existing", var=self.chk_state, command=self.change_state, background=bg, foreground=fg, selectcolor=bg)
+		self.chk.grid(column=2, row=3)
+
+		self.curProjList = tk.Label(self.win2, text="Current Projects", background=bg, foreground=fg, state=DISABLED)
+		self.curProjList.grid(column=1, row=2, sticky="W")
+		self.comboCurProjList = ttk.Combobox(self.win2, state=DISABLED)
+		self.comboCurProjList['values'] = [""] + self.proj_list
+		self.comboCurProjList.current(0)
+		self.comboCurProjList.grid(column=1, row=3, sticky="W")
+
+		self.lblTaskDesc = tk.Label(self.win2, text="Task Description", background=bg, foreground=fg)
+		self.lblTaskDesc.grid(column=0, row= 4, sticky="w")
+		self.entTaskDesc = tk.Text(self.win2, width=50, height=5)
+		self.entTaskDesc.grid(column=0, row=5, padx=5, pady=5, sticky="w", columnspan=3)
+
+		self.submitNewTask = tk.Button(self.win2, text="Submit", command=self.get_input)
+		self.submitNewTask.grid(column=0, row=6, sticky="e", ipadx=15)
+
+	def change_state(self):
+		if self.chk_state.get() == True:
+			self.curProjList.config(state=NORMAL)
+			self.comboCurProjList.config(state=NORMAL)
+
+			self.lblProjName.config(state=DISABLED)
+			self.entProjName.config(state=DISABLED, fill="green")
+		elif self.chk_state.get() == False:
+			self.curProjList.config(state=DISABLED)
+			self.comboCurProjList.config(state=DISABLED)
+
+			self.lblProjName.config(state=NORMAL)
+			self.entProjName.config(state=NORMAL)
+
+	def get_input(self):
+		if not self.entTask.get():
+			self.alert.config(text="Warning")
+			self.alert_msg.config(text="Task Field is Empty")
+			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
+			self.win2.update()
+		elif not self.entProjName.get():
+			self.alert.config(text="Warning")
+			self.alert_msg.config(text="Project Name Field is Empty")
+			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
+			self.win2.update()
+		elif len(self.entTaskDesc.get("1.0", "end-1c")) == 0:
+			self.alert.config(text="Warning")
+			self.alert_msg.config(text="Description Field is Empty")
+			self.win2.after(3000, lambda: (self.alert.config(text=""), self.alert_msg.config(text="")))
+			self.win2.update()
+		else:
+
+			task_name = self.entTask.get()
+			project_name = self.entProjName.get()
+			task_description = self.entTaskDesc.get(1.0, END)
+			date_inp = self.yyyy_mm_dd()
+			self.win2.destroy()
+
+
+
+
+		
+
+
 
 	def check_task(self):
 		# See if task has expired
 		# If true, turn orange
 		pass
 
-
-
-
-
-
-
 def setup():
 	print("Welcome to CRMv1.0.0\n" + 
 			"Created with sqlite3 on January 31st 2019\n")
 	# Initialization
-	root = Tk()
+	root = tk.Tk()
 	root.title("Flatiron CRMv1.0.0")
 	root.geometry('550x500')
-	root.config(background="grey")
 	root.resizable(width=False, height=False)
-	app = CRM(root)
+	app = CRM("CRM Prototype", master=root)
 	root.mainloop()
 	
 if __name__ == "__main__":
