@@ -11,6 +11,7 @@ from tkinter.ttk import *
 
 
 tab_w_id = {}
+task_w_id = {}
 
 class CRM(tk.Frame):
 	def __init__(self, title, master=None):
@@ -26,14 +27,18 @@ class CRM(tk.Frame):
 
 	def colours(self):
 		# Bootstrap Colors
-		f = "#6C757D" #dark grey
+		# Main colors
 		self.bg = "#F8F9FA" #off-white
+		self.fg = "#343A40" # off-black 52, 58, 64
+
+		# Misc colors
+		self.dark_grey = "#6C757D" #dark grey
 		self.blue = "#007BFF" # blue 0,123,255
 		self.green = "#28A745" # green 40,167,69
 		self.red = "#DC3545" # red 220, 53, 69
-		y = "#FFC107" # yellow 255, 193, 7
-		t = "#17A2B8" # turquoise 23, 162, 184
-		self.fg = "#343A40" # off-black 52, 58, 64
+		self.yellow = "#FFC107" # yellow 255, 193, 7
+		self.turquoise = "#17A2B8" # turquoise 23, 162, 184
+		
 
 
 	def load_proj_list(self):
@@ -58,6 +63,7 @@ class CRM(tk.Frame):
 		return str('-'.join(map(str, [now.year, now.month, now.day])))
 
 	def create_db(self):
+		# Creates a sample database for debugging and testing the app. <<Will eventually be deleted>>
 		# Connect to database or create if non existant
 		conn = sqlite3.connect('crmdatabase.sqlite3')
 		cur = conn.cursor()
@@ -78,13 +84,8 @@ class CRM(tk.Frame):
 			date_created TIMESTAMP DEFAULT CURRENT_DATE,
 			task_description VARCHAR DEFAULT "Description",
 			status VARCHAR DEFAULT "Open",
+			date_completed TIMESTAMP DEFAULT "Date Completed",
 			UNIQUE (task_id));
-
-		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2019-01-01', 'Ask about Bow River Bridge', 'Open');
-
-		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Singbeil this is an extra long text description', '2019-01-05', 'Confirm rams', 'Open');
-
-		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Janox', '2019-04-01', 'Check power supplies', 'Closed');
 
 		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2014-01-01', 'Ask about Bow River Bridge', 'Open');
 
@@ -111,12 +112,16 @@ class CRM(tk.Frame):
 		conn.close()
 
 	def create_tabs(self):
+		# Creates the project tabs for the app
 		self.tab_control = ttk.Notebook(self)
+		self.tab_control.enable_traversal()
 
+		# Creates the summary tab which is manually added and prepended to tab_w_id
 		self.tab = ttk.Frame(self.tab_control)
 		self.tab_control.add(self.tab, text="Summary")
 		tab_w_id["Summary"] = self.tab
 
+		# Project tabs are dynamically added based on database entries and stored in tab_w_id
 		for x in self.proj_list:
 			self.tab = ttk.Frame(self.tab_control)
 			self.tab_control.add(self.tab, text=x)
@@ -124,45 +129,152 @@ class CRM(tk.Frame):
 
 		self.tab_control.pack(expand=1, fill="both")
 
+	def update_tabs(self, projName):
+		self.tab = ttk.Frame(self.tab_control)
+		self.tab_control.add(self.tab, text=projName)
+		tab_w_id[projName] = self.tab
+
+
 	def pop_sum_tab(self):
-		btn = tk.Button(tab_w_id["Summary"], text="New Task", command=self.create_task, background=self.green, foreground=self.fg, padx=50, pady=10)
-		btn.grid(column = 0, row = 0, columnspan=3, sticky="news")
+		title = Label(tab_w_id["Summary"], text="CRM v1.0.0", font=("Helvetica Neue", 18))
+		title.grid(column=0, row=0, sticky="w", columnspan=2)
+
+		lblActions = Label(tab_w_id["Summary"], text="Actions", font=("Helvetica Neue", 15))
+		lblActions.grid(column=0, row=1, sticky="w")
+
+		btn = tk.Button(tab_w_id["Summary"], text="New Task", command=self.create_task, background=self.green, foreground=self.bg, padx=50, pady=10, relief="groove", font=("Helvetica Neue", 11))
+		btn.grid(column = 0, row = 2, columnspan=3, sticky="news")
+
+		# Create GUI
+		lblTitle = Label(tab_w_id["Summary"], text="Analytics", font=("Helvetica Neue", 15))
+		lblTitle.grid(column=0, row=3, sticky="w")
+
+		# Completed tasks
+		lblCompTasks = Label(tab_w_id["Summary"], text="Completed Tasks", font=("Helvetica Neue", 11, "bold"))
+		lblCompTasks.grid(column=0, row=4, sticky="w")
+
+		self.compTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.compTasks.grid(column=1, row=4, sticky="w")
+
+		# Tasks outstanding
+		lblOutTasks = Label(tab_w_id["Summary"], text="Tasks Outstanding", font=("Helvetica Neue", 11, "bold"))
+		lblOutTasks.grid(column=0, row=5, sticky="w")
+
+		self.outTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.outTasks.grid(column=1, row=5, sticky="w")
+
+		# Total tasks
+		lblCompTasks = Label(tab_w_id["Summary"], text="Total Tasks", font=("Helvetica Neue", 11, "bold"))
+		lblCompTasks.grid(column=0, row=6, sticky="w")
+		
+		self.totTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.totTasks.grid(column=1, row=6, sticky="w")
+		
+		# Projects
+		lblProj = Label(tab_w_id["Summary"], text="Summary of Projects", font=("Helvetica Neue", 11, "bold"))
+		lblProj.grid(column=0, row=7, sticky="Nw")
+		
+		self.lblProj = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.lblProj.grid(column=1, row=7, sticky="NW")	
+
+		self.analytics()
+
+	def analytics(self):
+			# Analytics on the database
+			# Get data from the database
+			conn = sqlite3.connect('crmdatabase.sqlite3')
+			cur = conn.cursor()
+
+			sql_command = """
+				SELECT COUNT(*) FROM tasks;
+			"""
+
+			cur.execute(sql_command)
+			data = cur.fetchall()
+			taskTotal = data[0][0]
+
+			sql_command = """
+				SELECT COUNT(*) FROM tasks WHERE status='Open';
+			"""
+
+			cur.execute(sql_command)
+			data = cur.fetchall()
+			taskOpen = data[0][0]
+
+			sql_command = """
+				SELECT COUNT(*) FROM tasks WHERE status='Closed';
+			"""
+
+			cur.execute(sql_command)
+			data = cur.fetchall()
+			taskClosed = data[0][0]
+
+			sql_command = """
+				SELECT COUNT(DISTINCT project) FROM tasks;
+			"""
+
+			cur.execute(sql_command)
+			data = cur.fetchall()
+			uniqueProj = data[0][0]
+
+			sql_command = """
+				SELECT project, COUNT(project) FROM tasks GROUP BY project;
+			"""
+
+			cur.execute(sql_command)
+			data = cur.fetchall()
+			projectInfo = dict(data)
+			# print(taskTotal, taskOpen, taskClosed, uniqueProj, projectInfo)
+			conn.close()
+
+			# Change values in summary tab
+			self.compTasks.config(text=str(taskClosed))
+			self.outTasks.config(text=str(taskOpen))
+			self.totTasks.config(text=str(taskTotal))
+			self.lblProj.config(text='\n'.join([x for x in projectInfo]))
 
 	def pop_tabs(self):
+		# Populates tabs with data in the database
+		# Connects to database
 		conn = sqlite3.connect('crmdatabase.sqlite3')
 		cur = conn.cursor()
+
+		# Iterates through tabs
 		for proj, tab_obj in tab_w_id.items():
 			sql_command = """
 				SELECT * FROM tasks WHERE project = ? ORDER BY date_created DESC;
 			"""
 
-			# Select data with the id x (specific project)
+			# Select data with the project id (specific project)
 			cur.execute(sql_command, (proj,))
 			resp = cur.fetchall()
 
-			# Populate all data with the given id x (specific project)
+			# Populate all data with the given project id (specific project)
 			for counter, entry in enumerate(resp):
-				text = '\n'.join(["Task: "+str(entry[0]), entry[2], entry[4], entry[3]])
+				text = '\n'.join(["Task: "+str(entry[0]), entry[2], entry[4], entry[3], entry[5], str(entry[6])])
 				# Task Name
 				nTask = Label(tab_obj, text=text, font=("Helvetica", 9))
 				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
 
+				# Store task id in task_w_id
+				task_w_id[entry[0]] = nTask
+
 				if entry[5] == "Open":
-					nTask.configure(background=self.green, foreground=self.fg, wraplength=250)
+					nTask.config(background=self.green, foreground=self.fg, wraplength=250)
 				elif entry[5] == "Closed":
-					nTask.configure(background=self.red, foreground=self.fg, wraplength=250)
+					nTask.config(background=self.red, foreground=self.fg, wraplength=250)
 
-				checkmark = Button(tab_obj, text="Complete Task", command="")
-				checkmark.grid(column = 1, row = counter+1, sticky="NE")
-				checkmark = Button(tab_obj, text="Modify Task", command="")
-				checkmark.grid(column = 2, row = counter+1, sticky="NE")
+				checkmark = tk.Button(tab_obj, text="Complete Task", command=lambda x=(nTask, entry[0]): self.close_task(x), background=self.green, foreground=self.fg, relief="groove", takefocus=False)
+				checkmark.grid(column = 1, row = counter+1, sticky="news")
+				checkmark = tk.Button(tab_obj, text="Modify Task", command="", background=self.yellow, foreground=self.fg, relief="groove", takefocus=False)
+				checkmark.grid(column = 2, row = counter+1, sticky="news")
 
-		conn.close()	
+		conn.close()
 
 	def menu(self):
 		self.menu = Menu(self)
 		new_item = Menu(self.menu, tearoff=0)
-		new_item.add_command(label="New Task", command="")
+		new_item.add_command(label="New Task", command=self.create_task)
 		new_item.add_separator()
 		new_item.add_command(label="Edit", command="")
 		new_item.add_command(label="Readme", command="")
@@ -170,16 +282,31 @@ class CRM(tk.Frame):
 		self.menu.add_cascade(label="File", menu=new_item)
 		self.master.config(menu=self.menu)
 
-	def close_task(self):
-		# Turn from green to red
-		pass
+	def close_task(self, entry):
+		# Unpack entry tuple
+		lblTask = entry[0]
+		taskId = entry[1]
+		date_completed = datetime.datetime.now()
+
+		# Update database
+		conn = sqlite3.connect('crmdatabase.sqlite3')
+		cur = conn.cursor()
+
+		sql_command = """
+			UPDATE tasks SET status='Closed', date_completed=CURRENT_DATE WHERE task_id=?;
+		"""
+
+		cur.execute(sql_command, (taskId,))
+		conn.commit()
+
+		# Turn task from "Open" to "Close" (from green to red) locally. Global update of all colors occurs when new task is inserted.
+		self.pop_tabs()
+		self.analytics()
+
+		
 
 	def modify_task(self):
 		# Change name, description, etc
-		pass
-
-	def analytics(self):
-		# Data points on existing tasks
 		pass
 
 	def create_task(self):
@@ -195,9 +322,9 @@ class CRM(tk.Frame):
 		self.entTask.grid(column=0, row=1, padx=5, pady=5, sticky="w")
 		self.entTask.focus()
 
-		self.lblDate = tk.Label(self.win2, text="Date Created", background=self.bg, foreground=self.fg)
+		self.lblDate = tk.Label(self.win2, text="Date Created (Y/M/D)", background=self.bg, foreground=self.fg)
 		self.lblDate.grid(column=1, row=0, sticky="w")
-		self.lblDateText = tk.Label(self.win2, text=self.yyyy_mm_dd, background=self.bg)
+		self.lblDateText = tk.Label(self.win2, text=str(self.yyyy_mm_dd()), background=self.bg)
 		self.lblDateText.grid(column=1, row=1, sticky="w")
 
 		self.alert = tk.Label(self.win2, text="", background=self.bg, foreground=self.red)
@@ -217,7 +344,7 @@ class CRM(tk.Frame):
 
 		self.curProjList = tk.Label(self.win2, text="Current Projects", background=self.bg, foreground=self.fg)
 		self.curProjList.grid(column=1, row=2, sticky="W")
-		self.comboCurProjList = ttk.Combobox(self.win2, foreground=self.fg, background=self.bg)
+		self.comboCurProjList = ttk.Combobox(self.win2, foreground=self.fg, background=self.bg, state="readonly")
 		self.comboCurProjList['values'] = [""] + self.proj_list
 		self.comboCurProjList.current(0)
 		self.comboCurProjList.grid(column=1, row=3, sticky="W")
@@ -227,7 +354,7 @@ class CRM(tk.Frame):
 		self.entTaskDesc = tk.Text(self.win2, width=50, height=5)
 		self.entTaskDesc.grid(column=0, row=5, padx=5, pady=5, sticky="w", columnspan=3)
 
-		self.submitNewTask = tk.Button(self.win2, text="Submit", command=self.get_input, background=self.green, foreground=self.fg)
+		self.submitNewTask = tk.Button(self.win2, text="Submit", command=self.get_input, background=self.green, foreground=self.bg, relief="groove", font=("Helvetica", 11))
 		self.submitNewTask.grid(column=0, row=6, sticky="nesw", padx=100, columnspan=3)
 
 	def change_state(self):
@@ -266,10 +393,9 @@ class CRM(tk.Frame):
 				project_name = self.comboCurProjList.get()			
 
 			task_name = self.entTask.get()
-			task_description = self.entTaskDesc.get(1.0, END)
-			# date_inp = self.yyyy_mm_dd()
+			task_description = self.entTaskDesc.get(1.0, END).rstrip()
 
-			# Connect to database and add entries
+			# Connect to database and add entry
 			conn = sqlite3.connect('crmdatabase.sqlite3')
 			cur = conn.cursor()
 
@@ -283,7 +409,11 @@ class CRM(tk.Frame):
 			# Close window
 			self.win2.destroy()
 			# update tabs
+			if project_name not in self.proj_list:
+				self.update_tabs(project_name)
+			self.load_proj_list()
 			self.pop_tabs()
+			self.analytics()
 
 	def check_task(self):
 		# See if task has expired
