@@ -17,6 +17,7 @@ Analytics will be used for presenting all work to supervisors/colleagues for rev
 - No. of current tasks still open/pending
 - No. of tasks closed/completed
 - No. of tasks deleted/modified/added
+- No. of tasks overdue
 - Calendar summary of tasks
 - Weekly summary of tasks
 - Daily summary of tasks
