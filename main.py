@@ -1,3 +1,4 @@
+# Importing all required libraries
 import time
 import datetime
 import sqlite3
@@ -8,9 +9,15 @@ from tkinter import messagebox
 from tkinter import filedialog
 from tkinter import ttk
 from tkinter.ttk import *
+import ctypes
 
+# Storing data on all tabs and tasks
 tab_w_id = {}
 task_w_id = {}
+canvas_w_id = {}
+scroll_w_id = {}
+page_w_id = {}
+page_heights = {}
 
 class CRM(tk.Frame):
 	def __init__(self, title, master=None):
@@ -23,7 +30,7 @@ class CRM(tk.Frame):
 		self.menu()
 		self.pop_sum_tab()
 		self.pack(fill="both", expand=True)
-
+		
 	def test(self):
 		print(5)
 
@@ -41,8 +48,6 @@ class CRM(tk.Frame):
 		self.yellow = "#FFC107" # yellow 255, 193, 7
 		self.turquoise = "#17A2B8" # turquoise 23, 162, 184
 		
-
-
 	def load_proj_list(self):
 		# Generate list of current distinct projects in database
 		conn = sqlite3.connect('crmdatabase.sqlite3')
@@ -86,7 +91,7 @@ class CRM(tk.Frame):
 			date_created TIMESTAMP DEFAULT CURRENT_DATE,
 			task_description VARCHAR DEFAULT "Description",
 			status VARCHAR DEFAULT "Open",
-			date_completed TIMESTAMP DEFAULT "Date Completed:",
+			date_completed TIMESTAMP DEFAULT "In Progress",
 			UNIQUE (task_id));
 
 		INSERT INTO tasks (project, task_name, date_created, task_description, status) VALUES ('Bow River Bridge', 'Call Tim Chu', '2014-01-01', 'Ask about Bow River Bridge', 'Open');
@@ -122,65 +127,96 @@ class CRM(tk.Frame):
 		self.tab = ttk.Frame(self.tab_control)
 		self.tab_control.add(self.tab, text="Summary")
 		tab_w_id["Summary"] = self.tab
+		self.tab_control.pack(expand=True, fill="both")
 
 		# Project tabs are dynamically added based on database entries and stored in tab_w_id
 		for x in self.proj_list:
 			self.tab = ttk.Frame(self.tab_control)
 			self.tab_control.add(self.tab, text=x)
 			tab_w_id[x] = self.tab
-			self.tab_control.bind("<Button-3>", lambda event, t=(x, str(self.tab)): self.rename_tab(t))
 
-		self.tab_control.pack(expand=1, fill="both")
+			self.canvas = Canvas(self.tab)
+			canvas_w_id[x] = self.canvas
 
-	def rename_tab(self, t):
-		print(t[0], t[1])
+			self.scroll = Scrollbar(self.tab, command=self.canvas.yview)
+			scroll_w_id[x] = self.scroll
+
+			self.canvas.config(yscrollcommand=self.scroll.set)
+
+			self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+			self.scroll.pack(side=RIGHT, fill=Y)
+
+			self.page = Frame(self.canvas)
+			self.canvas.create_window(0,0,window=self.page, anchor="nw")
+			page_w_id[x] = self.page
+			
+			self.canvas.bind("<MouseWheel>", lambda event: event.widget.yview_scroll(int(-1*(event.delta/120)), "units"))
+			
+			self.tab.bind("<Map>", lambda event: self.canvas.config(yscrollcommand=self.scroll.set))
 
 	def update_tabs(self, projName):
 		self.tab = ttk.Frame(self.tab_control)
 		self.tab_control.add(self.tab, text=projName)
 		tab_w_id[projName] = self.tab
+		self.canvas = Canvas(self.tab)
+		canvas_w_id[projName] = self.canvas
 
+		self.scroll = Scrollbar(self.tab, command=self.canvas.yview)
+		scroll_w_id[projName] = self.scroll
+
+		self.canvas.config(yscrollcommand=self.scroll.set)
+
+		self.canvas.pack(side=LEFT, fill=BOTH, expand=True)
+		self.scroll.pack(side=RIGHT, fill=Y)
+
+		self.page = Frame(self.canvas)
+		self.canvas.create_window(0,0,window=self.page, anchor="nw")
+		page_w_id[projName] = self.page
+
+		self.canvas.bind("<MouseWheel>", lambda event: event.widget.yview_scroll(int(-1*(event.delta/120)), "units"))
+			
+		self.tab.bind("<Map>", lambda event: self.canvas.config(yscrollcommand=self.scroll.set))
 
 	def pop_sum_tab(self):
-		title = Label(tab_w_id["Summary"], text="CRM v1.0.0", font=("Helvetica Neue", 18))
+		title = tk.Label(tab_w_id["Summary"], text="CRM v1.0.0", font=("Helvetica Neue", 18))
 		title.grid(column=0, row=0, sticky="w", columnspan=2)
 
-		lblActions = Label(tab_w_id["Summary"], text="Actions", font=("Helvetica Neue", 15))
+		lblActions = tk.Label(tab_w_id["Summary"], text="Actions", font=("Helvetica Neue", 15))
 		lblActions.grid(column=0, row=1, sticky="w")
 
 		btn = tk.Button(tab_w_id["Summary"], text="New Task", command=self.create_task, background=self.green, foreground=self.bg, padx=50, pady=10, relief="groove", font=("Helvetica Neue", 11))
 		btn.grid(column = 0, row = 2, columnspan=3, sticky="news")
 
 		# Create GUI
-		lblTitle = Label(tab_w_id["Summary"], text="Analytics", font=("Helvetica Neue", 15))
+		lblTitle = tk.Label(tab_w_id["Summary"], text="Analytics", font=("Helvetica Neue", 15))
 		lblTitle.grid(column=0, row=3, sticky="w")
 
 		# Completed tasks
-		lblCompTasks = Label(tab_w_id["Summary"], text="Completed Tasks", font=("Helvetica Neue", 11, "bold"))
+		lblCompTasks = tk.Label(tab_w_id["Summary"], text="Completed Tasks", font=("Helvetica Neue", 11, "bold"))
 		lblCompTasks.grid(column=0, row=4, sticky="w")
 
 		self.compTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
 		self.compTasks.grid(column=1, row=4, sticky="w")
 
 		# Tasks outstanding
-		lblOutTasks = Label(tab_w_id["Summary"], text="Tasks Outstanding", font=("Helvetica Neue", 11, "bold"))
+		lblOutTasks = tk.Label(tab_w_id["Summary"], text="Tasks Outstanding", font=("Helvetica Neue", 11, "bold"))
 		lblOutTasks.grid(column=0, row=5, sticky="w")
 
-		self.outTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.outTasks = tk.Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
 		self.outTasks.grid(column=1, row=5, sticky="w")
 
 		# Total tasks
-		lblCompTasks = Label(tab_w_id["Summary"], text="Total Tasks", font=("Helvetica Neue", 11, "bold"))
+		lblCompTasks = tk.Label(tab_w_id["Summary"], text="Total Tasks", font=("Helvetica Neue", 11, "bold"))
 		lblCompTasks.grid(column=0, row=6, sticky="w")
 		
-		self.totTasks = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.totTasks = tk.Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
 		self.totTasks.grid(column=1, row=6, sticky="w")
 		
 		# Projects
-		lblProj = Label(tab_w_id["Summary"], text="Summary of Projects", font=("Helvetica Neue", 11, "bold"))
+		lblProj = tk.Label(tab_w_id["Summary"], text="Summary of Projects", font=("Helvetica Neue", 11, "bold"))
 		lblProj.grid(column=0, row=7, sticky="Nw")
 		
-		self.lblProj = Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
+		self.lblProj = tk.Label(tab_w_id["Summary"], text="", font=("Helvetica Neue", 11))
 		self.lblProj.grid(column=1, row=7, sticky="NW")	
 
 		self.analytics()
@@ -241,19 +277,30 @@ class CRM(tk.Frame):
 
 	def pop_tabs(self):
 		# Populates tabs with data in the database
+		page_heights.clear()
 		# Connects to database
 		conn = sqlite3.connect('crmdatabase.sqlite3')
 		cur = conn.cursor()
 
 		# Iterates through tabs
-		for proj, tab_obj in tab_w_id.items():
+		for proj, tab_obj in page_w_id.items():
 			sql_command = """
-				SELECT * FROM tasks WHERE project = ? ORDER BY date_created DESC;
+				SELECT * FROM tasks WHERE project = ? AND status="Open" ORDER BY date_created ASC;
 			"""
 
 			# Select data with the project id (specific project)
 			cur.execute(sql_command, (proj,))
-			resp = cur.fetchall()
+			resp1 = cur.fetchall()
+
+			sql_command = """
+				SELECT * FROM tasks WHERE project = ? AND status="Closed" ORDER BY date_created ASC;
+			"""
+
+			# Select data with the project id (specific project)
+			cur.execute(sql_command, (proj,))
+			resp2 = cur.fetchall()
+
+			resp = resp1+resp2
 
 			# Delete existing items
 			if proj != "Summary":
@@ -262,32 +309,49 @@ class CRM(tk.Frame):
 
 			# Populate all data with the given project id (specific project)
 			for counter, entry in enumerate(resp):
-				text = '\n'.join(["Task: "+str(entry[0]), entry[2], entry[4], entry[3], entry[5], str(entry[6])])
+
+				text = '\n'.join(["Task ID: "+str(entry[0]), entry[2], entry[4], entry[3], entry[5], str(entry[6])])
 				# Task Name
-				nTask = Label(tab_obj, text=text, font=("Helvetica", 9))
-				nTask.grid(column=0, row=counter+1, sticky="news", ipadx=5, ipady=5, padx=2, pady=0.5)
+				nTask = tk.Label(tab_obj, text=text, font=("Helvetica Neue", 10), width=30, justify="left", anchor="w", relief="groove", borderwidth=2, padx=25)
+				nTask.grid(column=0, row=counter+1, padx=(0,0))
+
+				# Close task
+				checkmark1 = tk.Button(tab_obj, text="Complete\nTask", command=lambda x=(nTask, entry[0]): self.close_task(x), relief="groove", takefocus=False, font=("Helvetica Neue", 11))
+				checkmark1.grid(column = 1, row = counter+1, sticky="news")
+
+				# Modify task
+				checkmark2 = tk.Button(tab_obj, text="Modify\nTask", command=lambda x=(nTask, entry[0]): self.modify_task(x), relief="groove", takefocus=False, font=("Helvetica Neue", 11))
+				checkmark2.grid(column = 2, row = counter+1, sticky="news")
+
+				# Reopen task
+				checkmark3 = tk.Button(tab_obj, text="Reopen", command=lambda x=(nTask, entry[0]): self.undo_task(x), background=self.turquoise, foreground=self.bg, relief="groove", takefocus=False, font=("Helvetica Neue", 11))
+				checkmark3.grid(column = 4, row = counter+1, sticky="news")
 
 				# Store task id in task_w_id
 				task_w_id[entry[0]] = nTask
 
 				if entry[5] == "Open":
-					nTask.config(background=self.green, foreground=self.fg, wraplength=250)
+					nTask.config(background=self.green, foreground=self.fg, wraplength=200)
+					checkmark1.config(foreground=self.bg, background=self.green)
+					checkmark2.config(foreground=self.bg, background=self.yellow)
+					checkmark3.config(foreground=self.bg)
+
 				elif entry[5] == "Closed":
-					nTask.config(background=self.red, foreground=self.fg, wraplength=250)
+					nTask.config(background=self.red, foreground=self.fg, wraplength=200)
+					checkmark1.config(foreground=self.dark_grey, background=self.green)
+					checkmark2.config(foreground=self.dark_grey, background=self.yellow)
 
-				checkmark1 = tk.Button(tab_obj, text="Complete\nTask", command=lambda x=(nTask, entry[0]): self.close_task(x), background=self.green, foreground=self.bg, relief="groove", takefocus=False, font=("Helvetica Neue", 11))
-				checkmark1.grid(column = 1, row = counter+1, sticky="news")
-
-				checkmark2 = tk.Button(tab_obj, text="Modify\nTask", command=lambda x=(nTask, entry[0]): self.modify_task(x), background=self.yellow, foreground=self.bg, relief="groove", takefocus=False, font=("Helvetica Neue", 11))
-				checkmark2.grid(column = 2, row = counter+1, sticky="news")
-
-				# checkmark3 = tk.Button(tab_obj, text="Hide", background=self.turquoise, foreground=self.fg, relief="groove", takefocus=False)
-				# checkmark3.grid(column = 3, row = counter+1, sticky="news")
-
-				checkmark4 = tk.Button(tab_obj, text="Reopen", command=lambda x=(nTask, entry[0]): self.undo_task(x), background=self.turquoise, foreground=self.fg, relief="groove", takefocus=False, font=("Helvetica Neue", 11))
-				checkmark4.grid(column = 4, row = counter+1, sticky="news")
-
-				# checkmark3.config(command=lambda x=(nTask, checkmark3): self.hide_unhide(x))
+			if proj != "Summary":
+				for widget in tab_obj.winfo_children():
+					widget.update()
+					page_heights[proj] = page_heights.get(proj, 0) + widget.winfo_height()
+		
+		# Update scrollbar length
+		for x in self.proj_list:
+			if page_heights[x]/4 > 600:
+				canvas_w_id[x].config(scrollregion = (0,0,100,page_heights[x]/4))
+			else:
+				canvas_w_id[x].config(scrollregion = (0,0,100,600))
 
 		conn.close()
 
@@ -305,7 +369,6 @@ class CRM(tk.Frame):
 		# 	nTask.grid()
 		# 	checkmark.config(text="Hide")
 
-
 	def undo_task(self, entry):
 		# Turns closed tasks to open tasks
 		# Unpack entry tuple
@@ -318,7 +381,7 @@ class CRM(tk.Frame):
 		cur = conn.cursor()
 
 		sql_command = """
-			UPDATE tasks SET status='Open', date_completed="Date Completed:" WHERE task_id=?;
+			UPDATE tasks SET status='Open', date_completed="In Progress" WHERE task_id=?;
 		"""
 
 		cur.execute(sql_command, (taskId,))
@@ -380,7 +443,7 @@ class CRM(tk.Frame):
 		self.modify = tk.Toplevel(self)
 		self.modify.title("Modify Task")
 		self.modify.config(background=self.bg)
-		self.modify.resizable(width=False, height=False)
+		# self.modify.resizable(width=False, height=False)
 
 		self.lblModTask = tk.Label(self.modify, text="Task Name", background=self.bg, foreground=self.fg)
 		self.lblModTask.grid(column=0, row=0, sticky="w")
@@ -418,12 +481,14 @@ class CRM(tk.Frame):
 
 		self.lblModTaskDesc = tk.Label(self.modify, text="Task Description", background=self.bg, foreground=self.fg)
 		self.lblModTaskDesc.grid(column=0, row= 4, sticky="w")
-		self.entModTaskDesc = tk.Text(self.modify, width=50, height=5)
+		self.entModTaskDesc = tk.Text(self.modify, width=50, height=5, wrap="word")
 		self.entModTaskDesc.grid(column=0, row=5, padx=5, pady=5, sticky="w", columnspan=3)
 		self.entModTaskDesc.insert(END, data[0][3])
 
 		self.submitModTask = tk.Button(self.modify, text="Modify", command=lambda x=taskId: self.get_modify(x), background=self.yellow, foreground=self.bg, relief="groove", font=("Helvetica", 11))
 		self.submitModTask.grid(column=0, row=6, sticky="nesw", padx=100, columnspan=3)
+
+		self.modify.grab_set()
 
 	def modify_change_state(self):
 		if self.modChk_state.get() == True:
@@ -438,7 +503,6 @@ class CRM(tk.Frame):
 			self.comboModCurProjList.current(0)
 			self.lblModProjName.config(state=NORMAL)
 			self.entModProjName.config(state=NORMAL)
-
 
 	def get_modify(self, taskId):
 		if not self.entModTask.get().strip():
@@ -477,7 +541,8 @@ class CRM(tk.Frame):
 
 			# Update tasks locally. Global update of all colors occurs when new task is inserted.
 			# Close window
-			self.modify.destroy()
+			self.modify.grab_release()
+			self.modify_fade_away()
 
 			# update tabs
 			if project_name not in self.proj_list:
@@ -485,6 +550,24 @@ class CRM(tk.Frame):
 			self.load_proj_list()
 			self.pop_tabs()
 			self.analytics()
+
+	def modify_fade_away(self):
+		alpha = self.modify.attributes("-alpha")
+		if alpha > 0:
+			alpha -= 0.2
+			self.modify.attributes("-alpha", alpha)
+			self.after(50, self.modify_fade_away)
+		else:
+			self.modify.destroy()
+
+	def new_fade_away(self):
+		alpha = self.new.attributes("-alpha")
+		if alpha > 0:
+			alpha -= 0.2
+			self.new.attributes("-alpha", alpha)
+			self.after(50, self.new_fade_away)
+		else:
+			self.new.destroy()
 
 	def create_task(self):
 		# Create new task
@@ -528,11 +611,13 @@ class CRM(tk.Frame):
 
 		self.lblTaskDesc = tk.Label(self.new, text="Task Description", background=self.bg, foreground=self.fg)
 		self.lblTaskDesc.grid(column=0, row= 4, sticky="w")
-		self.entTaskDesc = tk.Text(self.new, width=50, height=5)
+		self.entTaskDesc = tk.Text(self.new, width=50, height=5, wrap="word")
 		self.entTaskDesc.grid(column=0, row=5, padx=5, pady=5, sticky="w", columnspan=3)
 
 		self.submitNewTask = tk.Button(self.new, text="Submit", command=self.get_input, background=self.green, foreground=self.bg, relief="groove", font=("Helvetica", 11))
 		self.submitNewTask.grid(column=0, row=6, sticky="nesw", padx=100, columnspan=3)
+
+		self.new.grab_set()
 
 	def change_state(self):
 		if self.chk_state.get() == True:
@@ -584,7 +669,8 @@ class CRM(tk.Frame):
 			conn.close()
 
 			# Close window
-			self.new.destroy()
+			self.new.grab_release()
+			self.new_fade_away()
 			# update tabs
 			if project_name not in self.proj_list:
 				self.update_tabs(project_name)
@@ -604,10 +690,15 @@ def setup():
 	# Initialization
 	root = tk.Tk()
 	root.title("Flatiron CRMv1.0.0")
-	root.geometry('550x500')
-	root.resizable(width=False, height=False)
+	user32 = ctypes.windll.user32
+	win_width = str(int(root.winfo_screenwidth()/2))
+	win_height = str(int(root.winfo_screenheight()/2))
+	root.state('zoomed')
+	root.geometry(win_width+"x"+win_height)
+	root.resizable(width=True, height=True)
 	app = CRM("CRM Prototype", master=root)
 	root.mainloop()
+
 	
 if __name__ == "__main__":
 	setup()
